@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width = device-width, initial-scale = 1.0">
+    <title>HOME</title>
+    <link rel="stylesheet" href="home.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap"
+        rel="stylesheet">
+
+</head>
+
+<body>
+
+    <nav id="navbar">
+
+        <a href="#padWind" class="navheader">WINDSPEED</a>
+        <a href="#padTemp" class="navheader">TEMPERATURE</a>
+        <a href="#padHumi" class="navheader">HUMIDITY</a>
+        <a href="#padCo2" class="navheader">CO2</a>
+        <a href="#padAqi" class="navheader">AQI</a>
+        <a href="#padPm" class="navheader">PM</a>
+        
+
+    </nav>
+    <div>
+
+        <div>
+
+            <p class="pad" id="padWind"> </p>
+            <canvas id="windChart" class="charts"></canvas>
+
+        </div>
+        <div>
+
+            <p class="pad" id="padTemp"> </p>
+            <canvas id="temperatureChart" class="charts"></canvas>
+
+        </div>
+        <div>
+
+            <p class="pad" id="padHumi"> </p>
+            <canvas id="humidityChart" class="charts"></canvas>
+
+        </div>
+        <div>
+
+            <p class="pad" id="padCo2"> </p>
+            <canvas id="co2Chart" class="charts"></canvas>
+
+        </div>
+        <div>
+
+            <p class="pad" id="padAqi"> </p>
+            <canvas id="aqiChart" class="charts"></canvas>
+
+        </div>
+        <div>
+
+            <p class="pad" id="padPm"> </p>
+            <canvas id="pmChart" class="charts"></canvas>
+
+        </div>
+        <button id="logoutBtn">Logout</button>
+
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+
+        document.getElementById("logoutBtn").addEventListener("click", function (event) {
+            event.preventDefault()
+            fetch("/home",
+                {
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    method: "POST",
+                    body: JSON.stringify()
+                })
+                .then(function (res) {
+                    window.location.href = '/'
+                })
+        })
+
+        const envirData = {
+            wind: {
+                data: [[]],
+                label: "Wind Speed (m/s)"
+            },
+            temp: {
+                data: [[]],
+                label: "Temperature (C)"
+            },
+            humi: {
+                data: [[]],
+                label: "Humidity (%)"
+            },
+            co2: {
+                data: [[]],
+                label: "CO2 (g/cm3)"
+            },
+            aqi: {
+                data: [[]],
+                label: "AQI",
+            },
+        }
+
+        const pmData = {
+            pm10: {
+                pmData: [[]],
+                pmLabel: "PM 10.0 (ppm)",
+            },
+            pm25: {
+                pmData: [[]],
+                pmLabel: "PM 2.5 (ppm)",
+            },
+            pm100: {
+                pmData: [[]],
+                pmLabel: "PM 1.0 (ppm)",
+            },
+        }
+
+        function getTimeInHHMM() {
+            let output = ""
+            let today = new Date();
+            let HH = today.getHours();
+            let MM = today.getMinutes();
+            output = `${HH}:${MM}`
+            return output;
+        }
+
+        function getRandom(a, b) {
+            return Math.floor(Math.random() * (b - a) + a)
+        }
+
+        for (let i = 0; i < 10; i++) { 
+            let label1 = getTimeInHHMM();
+            let data1 = getRandom(0, 10);
+            let data2 = getRandom(5, 50);
+            let data3 = getRandom(0, 100);
+            let data4 = getRandom(0, 500);
+            let data5 = getRandom(0, 100);
+            envirData.wind.data.push([label1, data1])
+            envirData.temp.data.push([label1, data2])
+            envirData.humi.data.push([label1, data3])
+            envirData.aqi.data.push([label1, data4])
+            envirData.co2.data.push([label1, data5])
+            let pmRandomData1 = getRandom(0, 50);
+            let pmRandomData2 = getRandom(0, 50);
+            let pmRandomData3 = getRandom(0, 50);
+            pmData.pm10.pmData.push([label1, pmRandomData1])
+            pmData.pm25.pmData.push([label1, pmRandomData2])
+            pmData.pm100.pmData.push([label1, pmRandomData3])
+        }
+
+        function addEnvirIn4(nameChart, newLabel, newData) {
+            nameChart.data.labels.push(newLabel);
+            nameChart.data.datasets[0].data.push(newData);
+            nameChart.update();
+        }
+
+        function getChartConfig(datas, label) {
+            let labels = datas.map(data => {
+                return data[0]
+            })
+            let dataset = datas.map(data => {
+                return data[1]
+            })
+            return {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: `${label}`,
+                        data: dataset,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            }
+        }
+
+        function getDustChartConfig(dustDatas) {
+            let dustDatasets = [];
+            for (let pm in dustDatas) {
+                if (dustDatas.hasOwnProperty(pm)) {
+                    let dustData = dustDatas[pm].pmData.map(data => data[1]);
+                    dustDatasets.push({
+                        label: dustDatas[pm].pmLabel,
+                        data: dustData,
+                        borderWidth: 1
+                    });
+                }
+            }
+            let labels = dustDatas.pm10.pmData.map(pmData => pmData[0]);
+            return {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: dustDatasets
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            };
+        }
+
+        const wind = document.getElementById('windChart');
+        const temp = document.getElementById('temperatureChart');
+        const humi = document.getElementById('humidityChart');
+        const co2 = document.getElementById('co2Chart');
+        const pm = document.getElementById('pmChart');
+        const aqi = document.getElementById('aqiChart');
+
+        let windChart = new Chart(wind, getChartConfig(envirData.wind.data, envirData.wind.label))
+        let tempChart = new Chart(temp, getChartConfig(envirData.temp.data, envirData.temp.label))
+        let humiChart = new Chart(humi, getChartConfig(envirData.humi.data, envirData.humi.label))
+        let co2Chart = new Chart(co2, getChartConfig(envirData.co2.data, envirData.co2.label))
+        let aqiChart = new Chart(aqi, getChartConfig(envirData.aqi.data, envirData.aqi.label))
+        let pmChart = new Chart(pm, getDustChartConfig(pmData))
+
+    </script>
+
+</body>
+
+</html>

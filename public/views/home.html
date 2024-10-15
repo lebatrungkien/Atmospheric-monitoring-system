@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width = device-width, initial-scale = 1.0">
+    <title>HOME</title>
+    <link rel="stylesheet" href="/stylesheets/home.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap"
+        rel="stylesheet">
+
+</head>
+
+<body>
+    <nav id="navbar">
+        <a href="#padWind" class="navheader">WINDSPEED</a>
+        <a href="#padTemp" class="navheader">TEMPERATURE</a>
+        <a href="#padHumi" class="navheader">HUMIDITY</a>
+        <a href="#padCo2" class="navheader">CO2</a>
+        <a href="#padAqi" class="navheader">AQI</a>
+        <a href="#padPm" class="navheader">PM</a>
+    </nav>
+    <div>
+        <div>
+            <p class="pad" id="padWind"> </p>
+            <canvas id="windChart" class="charts"></canvas>
+        </div>
+        <div>
+            <p class="pad" id="padTemp"> </p>
+            <canvas id="temperatureChart" class="charts"></canvas>
+        </div>
+        <div>
+            <p class="pad" id="padHumi"> </p>
+            <canvas id="humidityChart" class="charts"></canvas>
+        </div>
+        <div>
+            <p class="pad" id="padCo2"> </p>
+            <canvas id="co2Chart" class="charts"></canvas>
+        </div>
+        <div>
+            <p class="pad" id="padAqi"> </p>
+            <canvas id="aqiChart" class="charts"></canvas>
+        </div>
+        <div>
+            <p class="pad" id="padPm"> </p>
+            <canvas id="pmChart" class="charts"></canvas>
+        </div>
+        <button id="logoutBtn">Logout</button>
+
+    </div>
+    <!-- soccket -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        socket.on('connect', () => {
+            console.log('connected');
+        });
+        socket.on("/web/up-data", (data) => {
+            console.log(data)
+            let label = getTimeInHHMM(data.createdAt)
+            addData(aqiChart, label, data.aqi)
+            addData(tempChart, label, data.temp)
+            addData(humiChart, label, data.humi)
+            addData(windChart, label, data.wind)
+            addData(co2Chart, label, data.co2)  
+            addData(pmChart, label, [data.pm1, data.pm25, data.pm10])
+        })
+
+
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+
+        document.getElementById("logoutBtn").addEventListener("click", function (event) {
+            event.preventDefault()
+            fetch("/logout",
+                {
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    method: "POST",
+                    body: JSON.stringify()
+                })
+            window.location.href = "/login"
+        })
+
+        const envirData = {
+            wind: {
+                data: [[]],
+                label: "Wind Speed (m/s)"
+            },
+            temp: {
+                data: [[]],
+                label: "Temperature (C)"
+            },
+            humi: {
+                data: [[]],
+                label: "Humidity (%)"
+            },
+            co2: {
+                data: [[]],
+                label: "CO2 (g/cm3)"
+            },
+            aqi: {
+                data: [[]],
+                label: "AQI",
+            },
+        }
+
+        const pmData = {
+            pm1: {
+                pmData: [[]],
+                pmLabel: "PM 1.0 (ppm)",
+            },
+            pm25: {
+                pmData: [[]],
+                pmLabel: "PM 2.5 (ppm)",
+            },
+            pm10: {
+                pmData: [[]],
+                pmLabel: "PM 10.0 (ppm)",
+            },
+        }
+
+        function getTimeInHHMM(date) {
+            if (!date) {
+                date = new Date()
+            } else {
+                date = new Date(date)
+            }
+            let output = ""
+            let HH = date.getHours();
+            let MM = date.getMinutes();
+            output = `${HH}:${MM}`
+            return output;
+        }
+
+        function getRandom(a, b) {
+            return Math.floor(Math.random() * (b - a) + a)
+        }
+
+
+
+        async function getChartData(type) {
+            if (type) {
+                let response = await fetch(`/api/data/${type}`)
+                let result = await response.json()
+                return {
+                    result: result,
+                    type: type
+                }
+            } else {
+                let response = await fetch(`/api/data`)
+                let result = await response.json()
+                return {
+                    result: result,
+                    type: type
+                }
+            }
+        }
+
+        function addData(chart, label, data) {
+            chart.data.labels.push(label)
+            chart.data.datasets.forEach((dataset, index) => {
+                if (typeof data === "object") {
+                    console.log(data[index])
+                    dataset.data.push(data[index])
+                } else {
+                    dataset.data.push(data)
+                }
+            })
+            chart.update()
+            if (chart.data.labels.length > 10) {
+                removeData(chart)
+            }
+            chart.update()
+        }
+
+        function removeData(chart) {
+            chart.data.labels.shift()
+            chart.data.datasets.forEach((dataset) => {
+                dataset.data.shift()
+            })
+            chart.update()
+        }
+
+        function getChartConfig(datas, label) {
+            let labels = datas.map(data => {
+                return data[0]
+            })
+            let dataset = datas.map(data => {
+                return data[1]
+            })
+            return {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: `${label}`,
+                        data: dataset,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            }
+        }
+
+        function getDustChartConfig(dustDatas) {
+            let dustDatasets = [];
+            for (let pm in dustDatas) {
+                if (dustDatas.hasOwnProperty(pm)) {
+                    let dustData = dustDatas[pm].pmData.map(data => data[1]);
+                    dustDatasets.push({
+                        label: dustDatas[pm].pmLabel,
+                        data: dustData,
+                        borderWidth: 2
+                    });
+                }
+            }
+            let labels = dustDatas.pm10.pmData.map(pmData => pmData[0]);
+            return {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: dustDatasets
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            };
+        }
+
+        const wind = document.getElementById('windChart');
+        const temp = document.getElementById('temperatureChart');
+        const humi = document.getElementById('humidityChart');
+        const co2 = document.getElementById('co2Chart');
+        const pm = document.getElementById('pmChart');
+        const aqi = document.getElementById('aqiChart');
+
+        let aqiChart, tempChart, humiChart, windChart, co2Chart, pmChart;
+
+        let chartData = localStorage.getItem("chartData")
+        let version = localStorage.getItem("version")
+
+        if (chartData && version === new Date().getHours()) {
+            chartData = JSON.parse(chartData)
+            version = JSON.parse(version)
+            firstSettup()
+        } else {
+            version = new Date()
+            version = version.getHours()
+            localStorage.setItem("version", JSON.stringify(version))
+            getChartData().then(res => {
+                chartData = res.result.data
+                localStorage.setItem("chartData", JSON.stringify(chartData))
+                firstSettup();
+            })
+        }
+
+        function firstSettup() {
+            for (let i = chartData.length - 1; i >= 0; i--) { //nhiệt độ, độ ẩm, pm (1, 2.5, 10), aqi, co2, windsped 
+                let label1 = getTimeInHHMM(chartData[i].createdAt);
+                envirData.wind.data.push([label1, chartData[i].wind])
+                envirData.aqi.data.push([label1, chartData[i].aqi])
+                envirData.temp.data.push([label1, chartData[i].temp])
+                envirData.humi.data.push([label1, chartData[i].humi])
+                envirData.co2.data.push([label1, chartData[i].co2])
+                for (let key in pmData) {
+                    pmData[key].pmData.push([label1, chartData[i][key]])
+                }
+            }
+
+            aqiChart = new Chart(aqi, getChartConfig(envirData.aqi.data, envirData.aqi.label))
+            tempChart = new Chart(temp, getChartConfig(envirData.temp.data, envirData.temp.label))
+            humiChart = new Chart(humi, getChartConfig(envirData.humi.data, envirData.humi.label))
+            windChart = new Chart(wind, getChartConfig(envirData.wind.data, envirData.wind.label))
+            co2Chart = new Chart(co2, getChartConfig(envirData.co2.data, envirData.co2.label))
+            pmChart = new Chart(pm, getDustChartConfig(pmData))
+
+        }
+    </script>
+
+</body>
+
+</html>

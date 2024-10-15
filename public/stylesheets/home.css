@@ -1,0 +1,60 @@
+body {
+    font-family: "Lato", sans-serif;
+}
+
+/*class*/
+.navheader {
+    text-align: center;
+    display: inline-block;
+    color: white;
+    text-decoration: none;
+    padding: 0px 70px;
+    width: 200px;
+    height: 50px;
+    line-height: 50px;
+}
+
+.navheader:hover {
+    color: black !important;
+    background-color: #ccc;
+}
+
+.charts {
+    margin-left: 128px;
+    margin-right: 500px;
+}
+
+.pad {
+    color: none !important;
+    width: 1536px;
+    height: 20px;
+    padding: 25px 0;
+}
+
+/*id*/
+#navbar {
+    background-color: black;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    height: 50px;
+    display: flex;
+    justify-content: space-around; 
+    align-items: center;
+} 
+
+#logoutBtn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    background-color: gray;
+    color: #fff;
+    border: none;
+}
+
+#logoutBtn:hover {
+    background-color: black;
+}
